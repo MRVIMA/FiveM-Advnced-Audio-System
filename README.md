@@ -27,9 +27,9 @@ This system is a modular vehicle enhancement suite that introduces high-fidelity
 | Tier | Price | Max Distance | Volume | Power Drain |
 | :--- | :--- | :--- | :--- | :--- |
 | **Basic** | $0 | 50.0m | 1.0x | 0.1 |
-| **Standard** | $25,000 | 75.0m | 1.2x | 0.2 |
-| **Premium** | $50,000 | 100.0m | 1.5x | 0.3 |
-| **Ultimate** | $100,000 | 150.0m | 2.0x | 0.4 |
+| **Standard** | $2,500 | 75.0m | 1.2x | 0.2 |
+| **Premium** | $5,000 | 100.0m | 1.5x | 0.3 |
+| **Ultimate** | $10,000 | 150.0m | 2.0x | 0.4 |
 
 ---
 
