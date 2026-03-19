@@ -1,19 +1,16 @@
--- Database table for vehicle upgrades
 CREATE TABLE IF NOT EXISTS `vehicle_audio_tiers` (
-  `id` INT(11) NOT NULL AUTO_INCREMENT,
-  `player_id` VARCHAR(255) NOT NULL,
-  `tier` VARCHAR(255) NOT NULL,
-  `timestamp` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  INDEX `idx_player_id` (`player_id`),
-  INDEX `idx_tier` (`tier`)
+  `plate` VARCHAR(50) NOT NULL,
+  `tier` VARCHAR(50) NOT NULL,
+  `timestamp` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`plate`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Sample data for different tiers
-INSERT INTO `vehicle_audio_tiers` (`player_id`, `tier`) VALUES 
-('1', 'basic'),
-('2', 'premium'),
-('3', 'ultimate');
 
--- Additional indexes for better performance
-CREATE INDEX idx_player_timestamp ON vehicle_audio_tiers(player_id, timestamp);
+
+/* Next Steps for Implementation
+To finish the QBCore/Jim-Mechanic integration, you will need to add the physical items to your qb-core/shared/items.lua file so players can hold them in their inventory.
+
+['audio_standard'] 	= {['name'] = 'audio_standard', 	['label'] = 'Standard Audio System', 	['weight'] = 5000, 	['type'] = 'item', 	['image'] = 'amplifier.png', 	['unique'] = false, 	['useable'] = true, 	['shouldClose'] = true, ['combinable'] = nil, ['description'] = 'An aftermarket car audio upgrade.'},
+['audio_premium'] 	= {['name'] = 'audio_premium', 		['label'] = 'Premium Audio System', 	['weight'] = 6000, 	['type'] = 'item', 	['image'] = 'subwoofer.png', 	['unique'] = false, 	['useable'] = true, 	['shouldClose'] = true, ['combinable'] = nil, ['description'] = 'A high-end car audio setup.'},
+['audio_ultimate'] 	= {['name'] = 'audio_ultimate', 	['label'] = 'VoidVima Ultimate Setup', 	['weight'] = 8000, 	['type'] = 'item', 	['image'] = 'sound_system.png', ['unique'] = false, 	['useable'] = true, 	['shouldClose'] = true, ['combinable'] = nil, ['description'] = 'The absolute loudest, glass-shattering phonk machine setup available.'},
+*/

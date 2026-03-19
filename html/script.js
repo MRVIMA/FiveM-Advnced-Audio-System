@@ -1,103 +1,100 @@
-// Vima Advanced Audio - Media Player Interface
+const resourceName = GetParentResourceName ? GetParentResourceName() : 'vima_audio';
 
-let audioContext = null;
-let isPlaying = false;
-let currentVolume = 0.5;
-
-const playBtn = document.getElementById('playBtn');
-const pauseBtn = document.getElementById('pauseBtn');
-const stopBtn = document.getElementById('stopBtn');
-const volumeSlider = document.getElementById('volumeSlider');
-const currentTier = document.getElementById('currentTier');
-const batteryLevel = document.getElementById('batteryLevel');
-const status = document.getElementById('status');
-
-function initAudioPlayer() {
-    playBtn.addEventListener('click', () => playAudio());
-    pauseBtn.addEventListener('click', () => pauseAudio());
-    stopBtn.addEventListener('click', () => stopAudio());
+window.addEventListener('DOMContentLoaded', () => {
+    const container = document.getElementById('main-container');
+    const visualizer = document.getElementById('visualizer');
+    const statusText = document.getElementById('statusText');
+    const batteryLevel = document.getElementById('batteryLevel');
+    const batteryBar = document.getElementById('batteryBar');
+    const currentTier = document.getElementById('currentTier');
     
-    volumeSlider.addEventListener('input', (e) => {
-        currentVolume = e.target.value / 100;
-        updateVolume(currentVolume);
-    });
-    
+    let isPlaying = false;
+
+    // Helper function for FiveM NUI Callbacks
+    async function postData(endpoint, data = {}) {
+        try {
+            await fetch(`https://${resourceName}/${endpoint}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+                body: JSON.stringify(data)
+            });
+        } catch (error) {
+            console.log(`Failed to post to ${endpoint}:`, error);
+        }
+    }
+
+    // Listen for messages from Client
     window.addEventListener('message', function(event) {
-        const data = event.data;
-        
-        switch(data.type) {
-            case 'updateTier':
-                updateTier(data.tier);
-                break;
-            case 'updateBattery':
-                updateBattery(data.level);
-                break;
-            case 'updateStatus':
-                updateStatus(data.status);
-                break;
+        const item = event.data;
+
+        if (item.type === "ui") {
+            if (item.display === true) {
+                container.style.display = 'block';
+                if (item.tier) {
+                    currentTier.textContent = item.tier.toUpperCase();
+                }
+            } else {
+                container.style.display = 'none';
+            }
+        }
+
+        if (item.action === "batteryUpdate") {
+            const level = Math.round(item.battery);
+            batteryLevel.textContent = `${level}%`;
+            batteryBar.style.width = `${level}%`;
+            
+            if (level < 20) {
+                batteryBar.style.background = '#ff3366'; // Turn red if low
+            } else {
+                batteryBar.style.background = 'linear-gradient(90deg, #ff3366, #00ff88)';
+            }
         }
     });
-    
-    window.postMessage({type: 'requestInitialData'}, '*');
-}
 
-function playAudio() {
-    if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    // Control Buttons
+    document.getElementById('playBtn').addEventListener('click', () => {
+        postData('audioControl', { action: "start" });
+        isPlaying = true;
+        visualizer.classList.add('active');
+        statusText.textContent = "PLAYING";
+        statusText.style.color = "#00ff88";
+    });
+
+    document.getElementById('pauseBtn').addEventListener('click', () => {
+        postData('audioControl', { action: "stop" }); // Assuming stop handles pausing for now
+        isPlaying = false;
+        visualizer.classList.remove('active');
+        statusText.textContent = "PAUSED";
+        statusText.style.color = "#f39c12";
+    });
+
+    document.getElementById('stopBtn').addEventListener('click', () => {
+        postData('audioControl', { action: "stop" });
+        isPlaying = false;
+        visualizer.classList.remove('active');
+        statusText.textContent = "STANDBY";
+        statusText.style.color = "#aaa";
+    });
+
+    // Volume Slider
+    const volumeSlider = document.getElementById('volumeSlider');
+    if (volumeSlider) {
+        volumeSlider.addEventListener('input', function() {
+            postData('setVolume', { volume: this.value });
+        });
     }
-    
-    isPlaying = true;
-    status.textContent = 'Playing';
-    
-    console.log('Audio playback started');
-}
 
-function pauseAudio() {
-    isPlaying = false;
-    status.textContent = 'Paused';
-    console.log('Audio playback paused');
-}
+    // Close Button & ESC key
+    const closeUI = () => {
+        container.style.display = 'none';
+        postData('exit'); // Make sure you have an NUI callback registered for 'exit' in client.lua to drop NuiFocus!
+    };
 
-function stopAudio() {
-    isPlaying = false;
-    status.textContent = 'Stopped';
-    console.log('Audio playback stopped');
-}
+    document.getElementById('closeBtn').addEventListener('click', closeUI);
 
-function updateVolume(volume) {
-    console.log(`Volume set to ${volume}`);
-}
-
-function updateTier(tier) {
-    currentTier.textContent = tier;
-}
-
-function updateBattery(level) {
-    batteryLevel.textContent = `${level}%`;
-    
-    if (level < 20) {
-        batteryLevel.style.color = 'red';
-    } else {
-        batteryLevel.style.color = 'white';
-    }
-}
-
-function updateStatus(newStatus) {
-    status.textContent = newStatus;
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    initAudioPlayer();
-});
-
-window.addEventListener('focus', () => {
-    if (audioContext && audioContext.state === 'suspended') {
-        audioContext.resume();
-    }
-});
-
-window.addEventListener('blur', () => {
-    if (audioContext) {
-        audioContext.suspend();
-    }
+    document.addEventListener('keyup', (e) => {
+        if (e.key === 'Escape') {
+            closeUI();
+        }
+    });
 });

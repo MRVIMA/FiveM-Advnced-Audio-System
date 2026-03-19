@@ -1,16 +1,26 @@
 fx_version 'cerulean'
 game 'gta5'
 
-author 'MR.Vima'
-description 'Advanced Audio System for Vehicles'
-version '2.1.8'
+author 'Void Vima'
+description 'Advanced Audio System - Jim Mechanic Edition'
+version '2.2.0'
 
-client_script 'client/main.lua'
-client_script 'client/audio.lua'
-client_script 'client/effects.lua'
-server_script 'server/main.lua'
-server_script 'server/battery.lua'
-shared_script 'config.lua'
+shared_scripts {
+    '@qb-core/import.lua',
+    'config.lua'
+}
+
+client_scripts {
+    'client/main.lua',
+    'client/audio.lua',
+    'client/effects.lua'
+}
+
+server_scripts {
+    '@oxmysql/lib/MySQL.lua',
+    'server/main.lua',
+    'server/battery.lua'
+}
 
 files {
     'html/index.html',

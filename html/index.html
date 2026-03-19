@@ -1,83 +1,70 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Vima Advanced Audio</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 20px;
-            font-family: Arial, sans-serif;
-            background-color: #1a1a1a;
-            color: white;
-        }
-        
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        
-        .audio-player {
-            background: #2d2d2d;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .controls {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        
-        button {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        
-        button:hover {
-            background: #45a049;
-        }
-        
-        .volume-control {
-            margin-top: 10px;
-        }
-        
-        input[type="range"] {
-            width: 100%;
-        }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VØIDVIMA Audio System</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Vima Advanced Audio System</h1>
-        
-        <div class="audio-player">
-            <h2>Media Player</h2>
-            <div class="controls">
-                <button id="playBtn">Play</button>
-                <button id="pauseBtn">Pause</button>
-                <button id="stopBtn">Stop</button>
-            </div>
+    <div class="container" id="main-container" style="display: none;">
+        <div class="glass-panel">
             
-            <div class="volume-control">
-                <label for="volumeSlider">Volume:</label>
-                <input type="range" id="volumeSlider" min="0" max="100" value="50">
+            <div class="header">
+                <div class="brand">
+                    <span class="v-logo">VØID</span>VIMA
+                </div>
+                <div class="close-btn" id="closeBtn">
+                    <i class="fas fa-times"></i>
+                </div>
             </div>
-        </div>
-        
-        <div class="audio-info">
-            <h3>Current Settings</h3>
-            <p>Tier: <span id="currentTier">Basic</span></p>
-            <p>Battery Level: <span id="batteryLevel">100%</span></p>
-            <p>Status: <span id="status">Active</span></p>
+
+            <div class="visualizer" id="visualizer">
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+            </div>
+
+            <div class="media-player">
+                <div class="controls">
+                    <button id="playBtn" class="control-btn play" title="Play"><i class="fas fa-play"></i></button>
+                    <button id="pauseBtn" class="control-btn" title="Pause"><i class="fas fa-pause"></i></button>
+                    <button id="stopBtn" class="control-btn stop" title="Stop"><i class="fas fa-stop"></i></button>
+                </div>
+
+                <div class="volume-container">
+                    <i class="fas fa-volume-down"></i>
+                    <input type="range" id="volumeSlider" class="cyber-slider" min="0" max="100" value="50">
+                    <i class="fas fa-volume-up"></i>
+                </div>
+            </div>
+
+            <div class="system-info">
+                <div class="info-card">
+                    <span class="label">SYS TIER</span>
+                    <span class="value accent" id="currentTier">STOCK</span>
+                </div>
+                <div class="info-card">
+                    <span class="label">POWER</span>
+                    <div class="battery-wrapper">
+                        <div class="battery-bar" id="batteryBar" style="width: 100%;"></div>
+                    </div>
+                    <span class="value" id="batteryLevel">100%</span>
+                </div>
+                <div class="info-card">
+                    <span class="label">STATUS</span>
+                    <span class="value active-status" id="statusText">STANDBY</span>
+                </div>
+            </div>
+
         </div>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>
-</script>
