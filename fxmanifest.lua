@@ -1,12 +1,12 @@
 fx_version 'cerulean'
 game 'gta5'
 
-author 'Void Vima'
-description 'Advanced Audio System - Jim Mechanic Edition'
-version '2.2.0'
+author 'VØIDVIMA'
+description 'Advanced Audio System - QBX Edition'
+version '3.0.0'
 
 shared_scripts {
-    '@qb-core/import.lua',
+    '@ox_lib/init.lua',
     'config.lua'
 }
 
@@ -24,6 +24,7 @@ server_scripts {
 
 files {
     'html/index.html',
+    'html/style.css',
     'html/script.js'
 }
 

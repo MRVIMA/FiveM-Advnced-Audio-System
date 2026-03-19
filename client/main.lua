@@ -1,42 +1,61 @@
-local QBCore = exports['qb-core']:GetCoreObject()
 local audioEnabled = false
 local currentTier = "basic"
 local batteryLevel = 100.0
 local currentPlate = nil
 
--- Installation Event for Jim-Mechanic Vibe
+-- Helper to safely get the plate string
+local function GetTrimmedPlate(vehicle)
+    local plate = GetVehicleNumberPlateText(vehicle)
+    if plate then
+        return string.gsub(plate, "^%s*(.-)%s*$", "%1")
+    end
+    return nil
+end
+
+-- Installation Event using ox_lib progressbar
 RegisterNetEvent("vima_audio:client:installAudio", function(tier, itemName)
     local ped = PlayerPedId()
-    local vehicle = QBCore.Functions.GetClosestVehicle()
+    local coords = GetEntityCoords(ped)
+    local vehicle = lib.getClosestVehicle(coords, 3.0, false)
     
-    if vehicle ~= 0 and vehicle ~= nil then
-        local pos = GetEntityCoords(ped)
-        local vehPos = GetEntityCoords(vehicle)
-        if #(pos - vehPos) < 3.0 then
-            local plate = QBCore.Functions.GetPlate(vehicle)
-            
-            SetVehicleDoorOpen(vehicle, 5, false, false) -- Open Trunk
-            TaskStartScenarioInPlace(ped, "PROP_HUMAN_BUM_BIN", 0, true)
+    if vehicle then
+        local plate = GetTrimmedPlate(vehicle)
+        
+        SetVehicleDoorOpen(vehicle, 5, false, false) -- Open Trunk
+        TaskStartScenarioInPlace(ped, "PROP_HUMAN_BUM_BIN", 0, true)
 
-            QBCore.Functions.Progressbar("install_audio", "Installing " .. Config.Tiers[tier].name .. " Audio...", 10000, false, true, {
-                disableMovement = true,
-                disableCarMovement = true,
-                disableMouse = false,
-                disableCombat = true,
-            }, {}, {}, {}, function() -- Done
-                ClearPedTasks(ped)
-                SetVehicleDoorShut(vehicle, 5, false)
-                TriggerServerEvent("vima_audio:server:finishInstall", tier, itemName, plate)
-            end, function() -- Cancel
-                ClearPedTasks(ped)
-                SetVehicleDoorShut(vehicle, 5, false)
-                QBCore.Functions.Notify("Installation Canceled", "error")
-            end)
+        if lib.progressBar({
+            duration = 10000,
+            label = "Installing " .. Config.Tiers[tier].name .. " Audio...",
+            useWhileDead = false,
+            canCancel = true,
+            disable = {
+                car = true,
+                move = true,
+                combat = true,
+                mouse = false
+            }
+        }) then
+            -- Success path
+            ClearPedTasks(ped)
+            SetVehicleDoorShut(vehicle, 5, false)
+            TriggerServerEvent("vima_audio:server:finishInstall", tier, itemName, plate)
         else
-            QBCore.Functions.Notify("You are not close enough to a vehicle.", "error")
+            -- Cancel path
+            ClearPedTasks(ped)
+            SetVehicleDoorShut(vehicle, 5, false)
+            lib.notify({
+                title = 'Canceled',
+                description = 'Audio installation was canceled.',
+                type = 'error'
+            })
         end
     else
-        QBCore.Functions.Notify("No vehicle nearby.", "error")
+        lib.notify({
+            title = 'System Error',
+            description = 'No vehicle close enough to modify.',
+            type = 'error'
+        })
     end
 end)
 
@@ -48,7 +67,6 @@ RegisterNUICallback("audioControl", function(data, cb)
         TriggerServerEvent("vima_audio:stopAudio")
         audioEnabled = false
     end
-    -- Removed the changeTier NUI callback since mechanics do it now
     cb({status = "ok"})
 end)
 
@@ -66,31 +84,38 @@ Citizen.CreateThread(function()
         Citizen.Wait(0)
         local ped = PlayerPedId()
 
-        -- Check vehicle entry to load tier from database
+        -- Check vehicle entry to load tier from database via ox_lib callback
         if IsPedInAnyVehicle(ped, false) then
             local vehicle = GetVehiclePedIsIn(ped, false)
-            local plate = QBCore.Functions.GetPlate(vehicle)
+            local plate = GetTrimmedPlate(vehicle)
 
-            if currentPlate ~= plate then
+            if plate and currentPlate ~= plate then
                 currentPlate = plate
-                QBCore.Functions.TriggerCallback('vima_audio:server:getVehicleAudio', function(tier)
-                    currentTier = tier
-                    TriggerEvent("vima_audio:applySettings", tier)
-                end, plate)
+                
+                -- QBX / ox_lib uses synchronous yielding for callbacks (cleaner code!)
+                local fetchedTier = lib.callback.await('vima_audio:server:getVehicleAudio', false, plate)
+                currentTier = fetchedTier
+                TriggerEvent("vima_audio:applySettings", currentTier)
             end
 
-            -- F2 to open menu (Only if they have an upgraded tier)
-            if IsControlJustPressed(0, 177) and currentTier ~= "basic" then 
+            -- F2 to open menu
+            if IsControlJustPressed(0, 177) then 
                 if GetPedInVehicleSeat(vehicle, -1) == ped then
-                    SendNUIMessage({
-                        type = "ui",
-                        display = true,
-                        tier = Config.Tiers[currentTier].name
-                    })
-                    SetNuiFocus(true, true)
+                    if currentTier ~= "basic" then
+                        SendNUIMessage({
+                            type = "ui",
+                            display = true,
+                            tier = Config.Tiers[currentTier].name
+                        })
+                        SetNuiFocus(true, true)
+                    else
+                        lib.notify({
+                            title = 'Stock System',
+                            description = 'This vehicle does not have an aftermarket audio interface installed.',
+                            type = 'error'
+                        })
+                    end
                 end
-            elseif IsControlJustPressed(0, 177) and currentTier == "basic" then
-                QBCore.Functions.Notify("This vehicle doesn't have an aftermarket audio system installed.", "error")
             end
             
             -- Battery and Effects Logic
@@ -101,12 +126,12 @@ Citizen.CreateThread(function()
                 end
                 
                 local speed = GetEntitySpeed(vehicle)
-                if speed > 10.0 and currentTier == "ultimate" then -- Example of restricting effects to high tiers
+                if speed > 10.0 and currentTier == "ultimate" then
                     TriggerEvent("vima_audio:playEffects", vehicle, speed)
                 end
             end
         else
-            -- Left vehicle
+            -- Left vehicle reset
             if currentPlate ~= nil then
                 currentPlate = nil
                 audioEnabled = false
@@ -117,9 +142,8 @@ end)
 
 RegisterNetEvent("vima_audio:syncAudio", function(plate, tier)
     local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-    if vehicle ~= 0 and QBCore.Functions.GetPlate(vehicle) == plate then
+    if vehicle ~= 0 and GetTrimmedPlate(vehicle) == plate then
         currentTier = tier
         TriggerEvent("vima_audio:applySettings", tier)
     end
 end)
-
