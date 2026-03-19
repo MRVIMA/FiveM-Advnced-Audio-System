@@ -1,9 +1,10 @@
 -- No need to import QBCore anymore; we use ox_inventory and ox_lib directly.
 
--- Register Usable Items using ox_inventory natively
+-- Register Usable Items using qbx_core
 for tier, itemName in pairs(Config.Items) do
-    exports.ox_inventory:RegisterUsableItem(itemName, function(playerId, _, item)
-        TriggerClientEvent("vima_audio:client:installAudio", playerId, tier, itemName)
+    exports.qbx_core:CreateUseableItem(itemName, function(source, item)
+        -- In qbx_core, the callback passes 'source' and the 'item' data table
+        TriggerClientEvent("vima_audio:client:installAudio", source, tier, itemName)
     end)
 end
 
@@ -33,15 +34,15 @@ RegisterNetEvent("vima_audio:server:finishInstall", function(tier, itemName, pla
     end
 end)
 
--- Fetch Audio settings using ox_lib callbacks
+-- Fetch Audio settings using modern oxmysql scalar await
 lib.callback.register('vima_audio:server:getVehicleAudio', function(source, plate)
-    -- Using Sync here is perfectly fine within an ox_lib callback thread
-    local result = MySQL.Sync.fetchAll('SELECT tier FROM vehicle_audio_tiers WHERE plate = ?', {plate})
+    -- scalar.await fetches a single column value from the first row it finds
+    local tier = MySQL.scalar.await('SELECT tier FROM vehicle_audio_tiers WHERE plate = ?', {plate})
     
-    if result and result[1] then
-        return result[1].tier
+    if tier then
+        return tier
     else
-        return "basic" -- Default stock audio
+        return "basic" -- Default stock audio if nothing is in the database
     end
 end)
 

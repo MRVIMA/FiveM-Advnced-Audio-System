@@ -1,7 +1,7 @@
 Config = Config or {}
 
 -- Set to true if using QBCore
-Config.UseQBCore = true 
+Config.UseQBCore = false
 
 -- Jim-Mechanic Integration Items
 Config.Items = {

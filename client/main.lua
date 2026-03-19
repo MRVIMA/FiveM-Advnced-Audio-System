@@ -80,6 +80,9 @@ RegisterNUICallback("exit", function(data, cb)
 end)
 
 Citizen.CreateThread(function()
+    -- Give the server a second to boot up callbacks if the script is live-restarted
+    Citizen.Wait(1000) 
+
     while true do
         Citizen.Wait(0)
         local ped = PlayerPedId()
@@ -92,9 +95,18 @@ Citizen.CreateThread(function()
             if plate and currentPlate ~= plate then
                 currentPlate = plate
                 
-                -- QBX / ox_lib uses synchronous yielding for callbacks (cleaner code!)
-                local fetchedTier = lib.callback.await('vima_audio:server:getVehicleAudio', false, plate)
-                currentTier = fetchedTier
+                -- Wrapped in a pcall (protected call) to prevent the script from hard-crashing 
+                -- if the server takes too long to register the callback.
+                local success, fetchedTier = pcall(function()
+                    return lib.callback.await('vima_audio:server:getVehicleAudio', 1000, plate)
+                end)
+
+                if success and fetchedTier then
+                    currentTier = fetchedTier
+                else
+                    currentTier = "basic" -- Fallback if the server callback fails
+                end
+                
                 TriggerEvent("vima_audio:applySettings", currentTier)
             end
 
