@@ -1,15 +1,28 @@
 local spatialAudioEnabled = false
 local activeSounds = {}
+local vehicleAudioSettings = {}
 
-function PlaySpatialSound(soundName, coords, volume)
+-- Helper to safely get the plate string
+local function GetTrimmedPlate(vehicle)
+    local plate = GetVehicleNumberPlateText(vehicle)
+    if plate then
+        return string.gsub(plate, "^%s*(.-)%s*$", "%1")
+    end
+    return nil
+end
+
+-- Fixed Native: PlaySoundFromCoord signature
+function PlaySpatialSound(soundName, soundDict, coords)
     local soundId = GetSoundId()
-    PlaySoundFromCoord(soundId, soundName, coords.x, coords.y, coords.z, nil, volume, 0, 0)
+    -- Proper FiveM Native usage for 3D spatial sounds
+    PlaySoundFromCoord(soundId, soundName, coords.x, coords.y, coords.z, soundDict, false, 0, false)
     return soundId
 end
 
 function CreateTrunkAudio(vehicle)
-    local trunkPos = GetEntityCoords(vehicle)
-    local soundId = PlaySpatialSound("vehicle_engine", trunkPos, 1.0)
+    local soundId = GetSoundId()
+    -- Attaches the sound specifically to the vehicle entity
+    PlaySoundFromEntity(soundId, "Car_Alarm", vehicle, "Alarm_Horn_Soundset", false, 0)
     
     activeSounds[vehicle] = {
         soundId = soundId,
@@ -19,16 +32,15 @@ function CreateTrunkAudio(vehicle)
     return soundId
 end
 
+-- Event to trigger specific built-in audio effects
 RegisterNetEvent("vima_audio:playSpatial")
 AddEventHandler("vima_audio:playSpatial", function(vehicle, effectType)
-    local ped = PlayerPedId()
-    local coords = GetEntityCoords(ped)
-    
     if effectType == "trunk" then
         CreateTrunkAudio(vehicle)
     end
 end)
 
+-- This is where the crash was happening. It is now fixed.
 RegisterNetEvent("vima_audio:applySettings")
 AddEventHandler("vima_audio:applySettings", function(tier)
     local tierConfig = Config.Tiers[tier]
@@ -36,12 +48,24 @@ AddEventHandler("vima_audio:applySettings", function(tier)
     if tierConfig then
         local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
         
-        if vehicle ~= nil and IsEntityAVehicle(vehicle) then
-            SetVehicleAudio(vehicle, tierConfig.volume, tierConfig.maxDistance)
+        if vehicle ~= 0 and IsEntityAVehicle(vehicle) then
+            local plate = GetTrimmedPlate(vehicle)
+            
+            -- Store the settings locally so the script knows the max volume/distance
+            if plate then
+                vehicleAudioSettings[plate] = {
+                    volume = tierConfig.volume,
+                    maxDistance = tierConfig.maxDistance
+                }
+            end
             
             spatialAudioEnabled = true
             
-            TriggerServerEvent("vima_audio:syncSettings", tier, vehicle)
+            -- Send the new volume limits to the NUI (HTML/JS)
+            SendNUIMessage({
+                action = "updateLimits",
+                maxVolume = tierConfig.volume
+            })
         end
     end
 end)
@@ -49,28 +73,20 @@ end)
 RegisterNetEvent("vima_audio:cleanup")
 AddEventHandler("vima_audio:cleanup", function(vehicle)
     if activeSounds[vehicle] then
+        -- Properly stop and release the sound ID to prevent memory leaks
         StopSound(activeSounds[vehicle].soundId)
+        ReleaseSoundId(activeSounds[vehicle].soundId)
         activeSounds[vehicle] = nil
     end
 end)
 
-function SetVehicleAudio(vehicle, volume, maxDistance)
-    if vehicle ~= nil and IsEntityAVehicle(vehicle) then
-        SetVehicleEngineSound(vehicle, volume)
-        SetVehicleMaxSpeed(vehicle, 100.0)
-        
-        local settings = {
-            volume = volume,
-            maxDistance = maxDistance
-        }
-        
-        SetVehicleData(vehicle, "audioSettings", settings)
+-- Safe getters for the rest of the script to use
+function GetVehicleAudioSettings(vehicle)
+    if vehicle ~= 0 then
+        local plate = GetTrimmedPlate(vehicle)
+        if plate and vehicleAudioSettings[plate] then
+            return vehicleAudioSettings[plate]
+        end
     end
-end
-
-function GetVehicleData(vehicle, key)
     return nil
-end
-
-function SetVehicleData(vehicle, key, value)
 end

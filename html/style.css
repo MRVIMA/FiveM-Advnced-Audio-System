@@ -236,3 +236,34 @@ body {
     background: linear-gradient(90deg, #ff3366, #00ff88);
     transition: width 0.3s ease;
 }
+
+.url-input-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.cyber-input {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(138, 43, 226, 0.3);
+    border-radius: 4px;
+    padding: 8px 12px;
+    color: #fff;
+    font-size: 12px;
+    outline: none;
+}
+
+.cyber-input:focus {
+    border-color: #00d2ff;
+    box-shadow: 0 0 5px rgba(0, 210, 255, 0.3);
+}
+
+.load-btn {
+    background: #8a2be2;
+    border: none;
+    color: white;
+    padding: 0 15px;
+    border-radius: 4px;
+    cursor: pointer;
+}

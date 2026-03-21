@@ -1,59 +1,75 @@
--- No need to import QBCore anymore; we use ox_inventory and ox_lib directly.
-
 -- Register Usable Items using qbx_core
 for tier, itemName in pairs(Config.Items) do
     exports.qbx_core:CreateUseableItem(itemName, function(source, item)
-        -- In qbx_core, the callback passes 'source' and the 'item' data table
         TriggerClientEvent("vima_audio:client:installAudio", source, tier, itemName)
     end)
 end
 
 RegisterNetEvent("vima_audio:server:finishInstall", function(tier, itemName, plate)
     local src = source
+    local cleanPlate = string.gsub(plate, "%s+", ""):upper()
     
-    -- Native ox_inventory item removal
     local removed = exports.ox_inventory:RemoveItem(src, itemName, 1)
 
-    -- Only proceed with database updates if the item was successfully removed
     if removed then
-        MySQL.Async.execute('INSERT INTO vehicle_audio_tiers (plate, tier) VALUES (?, ?) ON DUPLICATE KEY UPDATE tier = ?', 
-        {plate, tier, tier})
-
-        TriggerClientEvent('ox_lib:notify', src, {
-            title = 'Success',
-            description = 'VØIDVIMA Audio System Installed!',
-            type = 'success'
-        })
-        TriggerClientEvent("vima_audio:syncAudio", -1, plate, tier)
-    else
-        TriggerClientEvent('ox_lib:notify', src, {
-            title = 'Error',
-            description = 'Installation failed. Item missing from inventory.',
-            type = 'error'
-        })
+        MySQL.insert('INSERT INTO vehicle_audio_tiers (plate, tier) VALUES (?, ?) ON DUPLICATE KEY UPDATE tier = ?', 
+        {cleanPlate, tier, tier}, function(id)
+            print("^2[VØIDVIMA] Saved Tier: " .. tier .. " to Clean Plate: " .. cleanPlate .. "^7")
+            
+            TriggerClientEvent('ox_lib:notify', src, {
+                title = 'Success',
+                description = 'Audio System Installed!',
+                type = 'success'
+            })
+            TriggerClientEvent("vima_audio:syncAudio", -1, cleanPlate, tier)
+        end)
     end
 end)
 
--- Fetch Audio settings using modern oxmysql scalar await
+-- Fetch Audio settings
 lib.callback.register('vima_audio:server:getVehicleAudio', function(source, plate)
-    -- scalar.await fetches a single column value from the first row it finds
     local tier = MySQL.scalar.await('SELECT tier FROM vehicle_audio_tiers WHERE plate = ?', {plate})
+    return tier or "basic"
+end)
+
+RegisterNetEvent("vima_audio:server:playSystem", function(plate, url)
+    local src = source
+    local soundID = "vima_" .. plate
     
-    if tier then
-        return tier
+    -- Find the vehicle on the server
+    local vehicle = 0
+    for _, veh in ipairs(GetAllVehicles()) do
+        local vPlate = GetVehicleNumberPlateText(veh)
+        if vPlate and vPlate:gsub("%s+", ""):upper() == plate then
+            vehicle = veh
+            break
+        end
+    end
+
+    if vehicle ~= 0 then
+        -- Wait for the entity to be networked if it's new
+        local timeout = 0
+        while not NetworkGetEntityIsNetworked(vehicle) and timeout < 20 do
+            Wait(10)
+            timeout = timeout + 1
+        end
+
+        local netId = NetworkGetNetworkIdFromEntity(vehicle)
+        
+        -- Use PlayRemote with 'onEntity' set to true
+        -- We set volume to 0.8 (louder) and distance to 50.0
+        exports.xsound:PlayRemote(-1, soundID, url, 0.8, false, {
+            onEntity = true,
+            entityId = netId,
+            distance = 50.0,
+        })
+        
+        print("^2[VØIDVIMA] AUDIO STARTED: " .. url .. " on Plate: " .. plate .. "^7")
     else
-        return "basic" -- Default stock audio if nothing is in the database
+        print("^1[VØIDVIMA ERROR] Could not find vehicle with plate: " .. plate .. "^7")
     end
 end)
 
-RegisterServerEvent("vima_audio:startAudio")
-AddEventHandler("vima_audio:startAudio", function()
-    local src = source
-    TriggerClientEvent("vima_audio:start", src)
-end)
-
-RegisterServerEvent("vima_audio:stopAudio")
-AddEventHandler("vima_audio:stopAudio", function()
-    local src = source
-    TriggerClientEvent("vima_audio:stop", src)
+RegisterNetEvent("vima_audio:server:stopSystem", function(plate)
+    exports.xsound:Destroy(-1, "vima_" .. plate)
 end)

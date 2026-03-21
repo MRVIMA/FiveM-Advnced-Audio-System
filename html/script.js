@@ -51,6 +51,32 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    const streamPlayer = document.getElementById('streamPlayer');
+
+// Inside your load button listener
+document.getElementById('loadUrlBtn').addEventListener('click', () => {
+    const url = document.getElementById('musicUrl').value;
+    
+    if (url && url !== "") {
+        // Send to Lua -> Server -> xsound
+        postData('audioControl', { 
+            action: "playUrl", 
+            url: url 
+        });
+
+        // Update UI visuals only
+        document.getElementById('statusText').textContent = "LIVE STREAMING";
+        document.getElementById('visualizer').classList.add('active');
+    }
+});
+
+
+
+// Update volume of the stream based on the slider
+document.getElementById('volumeSlider').addEventListener('input', function() {
+    streamPlayer.volume = this.value / 100;
+});
+
     // Control Buttons
     document.getElementById('playBtn').addEventListener('click', () => {
         postData('audioControl', { action: "start" });

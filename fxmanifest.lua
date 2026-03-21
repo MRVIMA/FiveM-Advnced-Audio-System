@@ -13,13 +13,16 @@ shared_scripts {
 client_scripts {
     'client/main.lua',
     'client/audio.lua',
-    'client/effects.lua'
+    'client/effects.lua',
+    'client/shop.lua',
+    'client/props.lua'
 }
 
 server_scripts {
     '@oxmysql/lib/MySQL.lua',
     'server/main.lua',
-    'server/battery.lua'
+    'server/battery.lua',
+    'server/shop.lua'
 }
 
 files {
