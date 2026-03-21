@@ -76,11 +76,16 @@ Citizen.CreateThread(function()
                 TriggerEvent("vima_audio:applySettings", currentTier)
             end
 
-            -- F2 Key (289 is F2, 177 was Backspace)
+            -- F2 Key (289)
             if IsControlJustPressed(0, 289) and GetPedInVehicleSeat(vehicle, -1) == ped then
                 if currentTier ~= "basic" then
-                    SetNuiFocus(true, true)
-                    SendNUIMessage({ type = "ui", display = true, tier = Config.Tiers[currentTier].name })
+                    -- Ensure engine is on to power the high-end systems
+                    if GetIsVehicleEngineRunning(vehicle) then
+                        SetNuiFocus(true, true)
+                        SendNUIMessage({ type = "ui", display = true, tier = Config.Tiers[currentTier].name })
+                    else
+                        lib.notify({ title = 'Power Error', description = 'Turn on the engine to power the audio system!', type = 'error' })
+                    end
                 else
                     lib.notify({ title = 'Stock System', description = 'Upgrade required.', type = 'error' })
                 end

@@ -46,28 +46,22 @@ RegisterNetEvent("vima_audio:server:playSystem", function(plate, url)
         end
     end
 
-    if vehicle ~= 0 then
-        -- Wait for the entity to be networked if it's new
-        local timeout = 0
-        while not NetworkGetEntityIsNetworked(vehicle) and timeout < 20 do
-            Wait(10)
-            timeout = timeout + 1
-        end
-
-        local netId = NetworkGetNetworkIdFromEntity(vehicle)
-        
-        -- Use PlayRemote with 'onEntity' set to true
-        -- We set volume to 0.8 (louder) and distance to 50.0
-        exports.xsound:PlayRemote(-1, soundID, url, 0.8, false, {
-            onEntity = true,
-            entityId = netId,
-            distance = 50.0,
-        })
-        
-        print("^2[VØIDVIMA] AUDIO STARTED: " .. url .. " on Plate: " .. plate .. "^7")
-    else
-        print("^1[VØIDVIMA ERROR] Could not find vehicle with plate: " .. plate .. "^7")
+    -- Inside vima_audio:server:playSystem
+if vehicle ~= 0 and DoesEntityExist(vehicle) then
+    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    
+    -- Safety: If the NetID is 0, the vehicle isn't ready for sync yet
+    if netId == 0 then 
+        print("^1[VØIDVIMA] Critical Error: NetID is 0. Aborting audio sync.^7")
+        return 
     end
+
+    exports.xsound:PlayRemote(-1, soundID, url, 0.8, false, {
+        onEntity = true,
+        entityId = netId,
+        distance = 50.0,
+    })
+end
 end)
 
 RegisterNetEvent("vima_audio:server:stopSystem", function(plate)
