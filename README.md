@@ -69,7 +69,6 @@ An ultra-high-fidelity vehicle audio replacement for FiveM, engineered for perfo
 
 **Vimukthi Hewage (VØIDVIMA)**
 * Software Engineering Student @ Cardiff Metropolitan University
-* Music Producer & Sound Master
 
 ---
 
